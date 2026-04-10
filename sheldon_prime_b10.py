@@ -1,14 +1,29 @@
 def get_prime(n):
-    i = 0
-    for j in range(n - 1):
-        if (n == 0):
-            return 1
-        
+    """Return the nth prime number (1-indexed)."""
+    if n <= 0:
+        return None
+    if n == 1:
+        return 2
+    
+    count = 1  # We already have 2 as the first prime
+    candidate = 3
+    
+    while True:
+        # Check if candidate is prime
+        is_prime = True
         divisor = 2
-        while (divisor * divisor <= n):
-            if (n % divisor == 0):
-                continue
+        while divisor * divisor <= candidate:
+            if candidate % divisor == 0:
+                is_prime = False
+                break
             divisor += 1
+        
+        if is_prime:
+            count += 1
+            if count == n:
+                return candidate
+        
+        candidate += 2  # Only check odd numbers
 
 def reverse_digits(r):
     pass
@@ -19,4 +34,4 @@ def multiply_digit(r):
 def is_sheldon(r):
     pass
 
-#get_prime(3)
+print(get_prime(21))

@@ -29,7 +29,7 @@ def reverse_digits(r):
     """Return the number with its digits reversed."""
     return int(str(r)[::-1])
 
-def multiply_digit(r):
+def multiply_digits(r):
     """Return the product of the digits of r."""
     product = 1
     for digit in str(r):
@@ -37,6 +37,35 @@ def multiply_digit(r):
     return product
 
 def is_sheldon(r):
-    pass
+    """Check if r is a Sheldon prime.
+    
+    A Sheldon prime must satisfy:
+    - It is prime at position n
+    - The product of its digits equals n
+    - Its reverse is the prime at position reverse_digits(n)
+    """
+    if r <= 0:
+        return False
+    
+    # Find n such that get_prime(n) == r
+    n = 1
+    while True:
+        prime = get_prime(n)
+        if prime == r:
+            break
+        if prime > r:
+            # r is not prime
+            return False
+        n += 1
+    
+    # Check if the product of digits equals n
+    if multiply_digits(r) != n:
+        return False
+    
+    # r is the nth prime, now check if reverse_digits(r) == get_prime(reverse(n))
+    reversed_n = reverse_digits(n)
+    reversed_r = reverse_digits(r)
+    
+    return reversed_r == get_prime(reversed_n)
 
-print(get_prime(21))
+print(is_sheldon(73))

@@ -30,7 +30,11 @@ def reverse_digits(r):
     return int(str(r)[::-1])
 
 def multiply_digit(r):
-    pass
+    """Return the product of the digits of r."""
+    product = 1
+    for digit in str(r):
+        product *= int(digit)
+    return product
 
 def is_sheldon(r):
     pass

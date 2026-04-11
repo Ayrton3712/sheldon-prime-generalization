@@ -26,7 +26,8 @@ def get_prime(n):
         candidate += 2  # Only check odd numbers
 
 def reverse_digits(r):
-    pass
+    """Return the number with its digits reversed."""
+    return int(str(r)[::-1])
 
 def multiply_digit(r):
     pass

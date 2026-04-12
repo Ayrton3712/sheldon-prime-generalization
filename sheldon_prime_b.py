@@ -461,22 +461,57 @@ def estimate_required_prime_count(prime_count, bases):
     return max(prime_count, required)
 
 
-def analyze_all_bases(prime_count, bases, verbose=True, save_figures=True):
-    """Analyze and print property distributions across multiple bases.
+def _analyze_and_save_base(base_info):
+    """Helper function for parallel base analysis.
+    
+    Args:
+        base_info: Tuple of (base, prime_count, verbose, save_figures)
+    
+    Returns:
+        Tuple of (base, analysis, status_message)
+    """
+    b, prime_count, verbose, save_figures = base_info
+    
+    try:
+        # Analyze properties for this base
+        analysis = analyze_properties(b, prime_count)
+        
+        # Create status message
+        status_msg = f"Base {b}: Sheldon: {len(analysis['both'])}, Product only: {len(analysis['product_only'])}, Mirror only: {len(analysis['mirror_only'])}"
+        
+        # Save visualization if requested
+        if save_figures:
+            filename = f"base_{b}_properties.html"
+            visualize_properties(b, prime_count, save_filename=filename)
+            status_msg += f" | Saved {filename}"
+        
+        return (b, analysis, status_msg, True)
+    except Exception as e:
+        return (b, None, f"Base {b}: ERROR - {str(e)}", False)
+
+
+def analyze_all_bases(prime_count, bases, verbose=True, save_figures=True, num_workers=None):
+    """Analyze and print property distributions across multiple bases (parallelized).
     
     Args:
         prime_count: Number of primes to analyze (e.g., 10_000_000)
         bases: List of bases to check (e.g., [3, 4, 5, ..., 16])
         verbose: If True, print results for each base; if False, only show summary
-        save_figures: If True, save visualization PNG files for each base
+        save_figures: If True, save visualization HTML files for each base
+        num_workers: Number of worker processes (default: CPU count)
     
     Returns:
         Dict mapping base -> analysis results
     """
     import os
+    from multiprocessing import Pool, cpu_count
+    
+    if num_workers is None:
+        num_workers = cpu_count()
     
     print(f"\n{'='*80}")
     print(f"Analyzing first {prime_count:,} primes across bases {bases}")
+    print(f"Using {num_workers} worker processes")
     print(f"Estimating required prime cache size to check mirror property...")
     
     # Estimate how many primes we need to generate to handle mirror property checks
@@ -490,31 +525,27 @@ def analyze_all_bases(prime_count, bases, verbose=True, save_figures=True):
     
     print(f"{'='*80}\n")
     
+    # Generate primes once (serial)
     actual_count = init_primes_by_count(required_count)
     print(f"Generated {actual_count:,} primes\n")
+    print(f"Analyzing {len(bases)} bases in parallel...\n")
+    
+    # Prepare work items: (base, prime_count, verbose, save_figures)
+    work_items = [(b, prime_count, verbose, save_figures) for b in bases]
     
     results = {}
-    for b in bases:
-        print(f"Analyzing base {b}...")
-        # Analyze only the first prime_count primes (not the extra ones needed for mirror property)
-        analysis = analyze_properties(b, prime_count)
-        results[b] = analysis
-        
-        if verbose:
-            print_property_results(b, prime_count)
-        else:
-            # Compact summary
-            print(f"  Sheldon: {len(analysis['both'])}, Product only: {len(analysis['product_only'])}, Mirror only: {len(analysis['mirror_only'])}")
-        
-        # Save figure for this base
-        if save_figures:
-            filename = f"base_{b}_properties.html"
-            print(f"  Saving interactive visualization to {filename}...")
-            visualize_properties(b, prime_count, save_filename=filename)
-            print(f"  ✓ Saved {filename}")
+    
+    # Use multiprocessing pool to parallelize base analysis
+    with Pool(num_workers) as pool:
+        for b, analysis, status_msg, success in pool.imap_unordered(_analyze_and_save_base, work_items):
+            print(status_msg)
+            if success:
+                results[b] = analysis
+                if verbose:
+                    print_property_results(b, prime_count)
     
     print(f"\n{'='*80}")
-    print(f"Analysis complete. {len(bases)} interactive HTML files saved to current directory.")
+    print(f"Analysis complete. {len(results)} interactive HTML files saved to current directory.")
     print(f"Open the .html files in your browser to explore the visualizations with zoom, pan, and hover details.")
     print(f"{'='*80}\n")
     

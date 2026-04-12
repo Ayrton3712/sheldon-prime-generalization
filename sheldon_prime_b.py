@@ -108,7 +108,8 @@ def load_primes_from_file(filename="primes.npy"):
     """
     if os.path.exists(filename):
         primes_array = np.load(filename)
-        primes = primes_array.tolist()
+        # Explicitly cast to Python int for type safety and dict lookup consistency
+        primes = [int(p) for p in primes_array]
         print(f"Loaded {len(primes):,} primes from {filename}")
         return primes
     return None
@@ -466,14 +467,14 @@ def visualize_properties(b, limit_index, save_filename=None):
         return fig, analysis
 
 
-def print_property_results(b, limit_index):
-    """Print detailed results of property analysis for base b.
+def print_property_results_from_analysis(b, limit_index, analysis):
+    """Print detailed results from an already-computed analysis dict.
     
     Args:
         b: The base to check in (2-36)
         limit_index: Maximum prime index to check (1-indexed)
+        analysis: Dict from analyze_properties() with 'both', 'product_only', 'mirror_only', 'neither' keys
     """
-    analysis = analyze_properties(b, limit_index)
     
     print(f"\n{'='*70}")
     print(f"Property Analysis Results for Base {b} (First {limit_index} Primes)")
@@ -499,7 +500,7 @@ def print_property_results(b, limit_index):
     print(f"\n{'='*70}\n")
 
 
-def estimate_required_prime_count(prime_count, bases):
+def estimate_required_prime_count(prime_count):
     """Estimate the number of primes needed to check mirror property safely.
     
     When checking the mirror property, reversing digits in a small base
@@ -509,7 +510,6 @@ def estimate_required_prime_count(prime_count, bases):
     
     Args:
         prime_count: Number of primes to analyze
-        bases: List of bases to check (currently unused, kept for API compatibility)
     
     Returns:
         The number of primes to generate (conservative estimate)
@@ -519,20 +519,19 @@ def estimate_required_prime_count(prime_count, bases):
     return prime_count * 12
 
 
-def _worker_init(primes, prime_to_index):
+def _worker_init(primes):
     """Initialize global state in worker processes.
     
     This is called once per worker process when the Pool is created.
-    It sets up the global _primes and _prime_to_index so that analyze_properties
-    can access them without pickling large data structures repeatedly.
+    It sets up the global _primes so that analyze_properties can access it
+    without pickling large data structures repeatedly. We pass only _primes
+    since workers never use _prime_to_index (it would be multi-GB overhead).
     
     Args:
         primes: List of primes from main process
-        prime_to_index: Dict mapping prime value to 1-indexed position
     """
-    global _primes, _prime_to_index
+    global _primes
     _primes = primes
-    _prime_to_index = prime_to_index
 
 
 def _analyze_and_save_base(base_info):
@@ -591,7 +590,8 @@ def analyze_all_bases(prime_count, bases, verbose=True, save_figures=True, num_w
     print(f"Estimating required prime cache size to check mirror property...")
     
     # Estimate how many primes we need to generate to handle mirror property checks
-    required_count = estimate_required_prime_count(prime_count, bases)
+    # Note: cache validity is checked only by count, not by content or generation parameters
+    required_count = estimate_required_prime_count(prime_count)
     
     if required_count > prime_count:
         print(f"Mirror property checks require {required_count:,} primes (vs {prime_count:,} to analyze)")
@@ -612,18 +612,19 @@ def analyze_all_bases(prime_count, bases, verbose=True, save_figures=True, num_w
     results = {}
     
     # Use multiprocessing pool to parallelize base analysis
-    # Use initializer to set up global state in each worker process
+    # Use initializer to set up global _primes in each worker process
     with Pool(
         num_workers,
         initializer=_worker_init,
-        initargs=(_primes, _prime_to_index)
+        initargs=(_primes,)
     ) as pool:
         for b, analysis, status_msg, success in pool.imap_unordered(_analyze_and_save_base, work_items):
             print(status_msg)
             if success:
                 results[b] = analysis
                 if verbose:
-                    print_property_results(b, prime_count)
+                    # Use already-computed analysis to avoid recalculating
+                    print_property_results_from_analysis(b, prime_count, analysis)
     
     print(f"\n{'='*80}")
     print(f"Analysis complete. {len(results)} interactive HTML files saved to current directory.")

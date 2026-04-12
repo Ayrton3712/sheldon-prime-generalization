@@ -1,6 +1,8 @@
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import numpy as np
+import os
 
 def sieve(limit):
     """Generate all primes up to limit using Sieve of Eratosthenes.
@@ -32,20 +34,36 @@ def init_primes(limit=1000000):
     _prime_to_index = {p: i + 1 for i, p in enumerate(_primes)}  # 1-indexed
 
 
-def init_primes_by_count(count):
+def init_primes_by_count(count, cache_file="primes.npy", use_cache=True):
     """Initialize the prime cache with the first 'count' primes.
     
-    Uses the prime number theorem to estimate the necessary limit:
-    the nth prime is approximately n * ln(n) for large n.
+    Checks for cached primes first to avoid regeneration. Generates primes using
+    the prime number theorem to estimate the necessary limit.
     
     Args:
         count: Number of primes to generate
+        cache_file: Filename for caching primes (default: primes.npy)
+        use_cache: Whether to check for and load from cache (default: True)
     
     Returns:
-        The actual number of primes generated
+        The actual number of primes generated (or loaded from cache)
     """
     import math
     
+    global _primes, _prime_to_index
+    
+    # Try to load from cache first
+    if use_cache:
+        cached_primes = load_primes_from_file(cache_file)
+        if cached_primes and len(cached_primes) >= count:
+            _primes = cached_primes
+            _prime_to_index = {p: i + 1 for i, p in enumerate(_primes)}  # 1-indexed
+            return len(_primes)
+        else:
+            if cached_primes:
+                print(f"Cache has {len(cached_primes):,} primes, but {count:,} needed. Regenerating...")
+    
+    # Generate new primes if not in cache or cache insufficient
     if count < 10:
         limit = 30  # Handle small cases
     elif count < 100:
@@ -59,8 +77,71 @@ def init_primes_by_count(count):
     while True:
         init_primes(limit)
         if len(_primes) >= count:
+            # Cache the newly generated primes
+            if use_cache:
+                save_primes_to_file(_primes, cache_file)
             return len(_primes)
         limit = int(limit * 1.1)  # Increase by 10% and try again
+
+
+def save_primes_to_file(primes, filename="primes.npy"):
+    """Save primes list to a binary NumPy file for fast loading later.
+    
+    Args:
+        primes: List of primes to save
+        filename: Output filename (default: primes.npy in current directory)
+    """
+    primes_array = np.array(primes, dtype=np.uint64)
+    np.save(filename, primes_array)
+    file_size_mb = os.path.getsize(filename) / (1024 * 1024)
+    print(f"Saved {len(primes):,} primes to {filename} ({file_size_mb:.1f} MB)")
+
+
+def load_primes_from_file(filename="primes.npy"):
+    """Load primes from a NumPy binary file.
+    
+    Args:
+        filename: Input filename (default: primes.npy)
+    
+    Returns:
+        List of primes if file exists, None otherwise
+    """
+    if os.path.exists(filename):
+        primes_array = np.load(filename)
+        primes = primes_array.tolist()
+        print(f"Loaded {len(primes):,} primes from {filename}")
+        return primes
+    return None
+
+
+def save_primes_to_csv(primes, filename="primes.csv"):
+    """Save primes list to a CSV file for portability/inspection.
+    
+    Args:
+        primes: List of primes to save
+        filename: Output filename (default: primes.csv in current directory)
+    """
+    df = pd.DataFrame({'prime': primes})
+    df.to_csv(filename, index=False)
+    file_size_mb = os.path.getsize(filename) / (1024 * 1024)
+    print(f"Saved {len(primes):,} primes to {filename} ({file_size_mb:.1f} MB)")
+
+
+def load_primes_from_csv(filename="primes.csv"):
+    """Load primes from a CSV file.
+    
+    Args:
+        filename: Input filename (default: primes.csv)
+    
+    Returns:
+        List of primes if file exists, None otherwise
+    """
+    if os.path.exists(filename):
+        df = pd.read_csv(filename)
+        primes = df['prime'].tolist()
+        print(f"Loaded {len(primes):,} primes from {filename}")
+        return primes
+    return None
 
 
 def get_prime(n):
@@ -483,7 +564,7 @@ def _analyze_and_save_base(base_info):
         return (b, None, f"Base {b}: ERROR - {str(e)}", False)
 
 
-def analyze_all_bases(prime_count, bases, verbose=True, save_figures=True, num_workers=None):
+def analyze_all_bases(prime_count, bases, verbose=True, save_figures=True, num_workers=None, cache_file="primes.npy", use_cache=True):
     """Analyze and print property distributions across multiple bases (parallelized).
     
     Args:
@@ -492,6 +573,8 @@ def analyze_all_bases(prime_count, bases, verbose=True, save_figures=True, num_w
         verbose: If True, print results for each base; if False, only show summary
         save_figures: If True, save visualization HTML files for each base
         num_workers: Number of worker processes (default: CPU count)
+        cache_file: Filename for caching primes (default: primes.npy)
+        use_cache: Whether to use cached primes if available (default: True)
     
     Returns:
         Dict mapping base -> analysis results
@@ -518,9 +601,9 @@ def analyze_all_bases(prime_count, bases, verbose=True, save_figures=True, num_w
     
     print(f"{'='*80}\n")
     
-    # Generate primes once (serial)
-    actual_count = init_primes_by_count(required_count)
-    print(f"Generated {actual_count:,} primes\n")
+    # Generate primes once (serial), with caching support
+    actual_count = init_primes_by_count(required_count, cache_file=cache_file, use_cache=use_cache)
+    print(f"Initialized prime cache with {actual_count:,} primes\n")
     print(f"Analyzing {len(bases)} bases in parallel...\n")
     
     # Prepare work items: (base, prime_count, verbose, save_figures)
@@ -554,5 +637,12 @@ if __name__ == "__main__":
     prime_count = 10_000_000
     bases = [b for b in range(3, 17) if b != 10]  # 3-16, excluding 10
     
-    # This will initialize once for all bases
-    results = analyze_all_bases(prime_count, bases, verbose=True)   
+    # Primes will be cached to "primes.npy" after first generation.
+    # On subsequent runs, the cached file will be loaded instantly!
+    results = analyze_all_bases(
+        prime_count, 
+        bases, 
+        verbose=True,
+        cache_file="primes.npy",
+        use_cache=True
+    )   

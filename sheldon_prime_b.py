@@ -22,10 +22,45 @@ _primes = []
 _prime_to_index = {}
 
 def init_primes(limit=1000000):
-    """Initialize the prime cache with all primes up to limit."""
+    """Initialize the prime cache with all primes up to limit.
+    
+    Args:
+        limit: Upper bound for sieve (generates all primes <= limit)
+    """
     global _primes, _prime_to_index
     _primes = sieve(limit)
     _prime_to_index = {p: i + 1 for i, p in enumerate(_primes)}  # 1-indexed
+
+
+def init_primes_by_count(count):
+    """Initialize the prime cache with the first 'count' primes.
+    
+    Uses the prime number theorem to estimate the necessary limit:
+    the nth prime is approximately n * ln(n) for large n.
+    
+    Args:
+        count: Number of primes to generate
+    
+    Returns:
+        The actual number of primes generated
+    """
+    import math
+    
+    if count < 10:
+        limit = 30  # Handle small cases
+    elif count < 100:
+        limit = 550
+    else:
+        # Prime number theorem approximation: nth prime ~ n * ln(n)
+        # Add 15% buffer to be safe
+        limit = int(count * (math.log(count) + math.log(math.log(count))) * 1.15)
+    
+    # Keep increasing limit until we have enough primes
+    while True:
+        init_primes(limit)
+        if len(_primes) >= count:
+            return len(_primes)
+        limit = int(limit * 1.5)  # Increase by 50% and try again
 
 
 def get_prime(n):
@@ -84,10 +119,17 @@ def check_product_property(r, n, b):
 
 
 def check_mirror_property(r, n, b):
-    """Check if the reverse of r in base b is the prime at position reverse_digits(n) in base b."""
+    """Check if the reverse of r in base b is the prime at position reverse_digits(n) in base b.
+    
+    Returns False if the reversed index exceeds the precomputed prime range.
+    """
     reversed_n = reverse_digits_in_base(n, b)
     reversed_r = reverse_digits_in_base(r, b)
-    return reversed_r == get_prime(reversed_n)
+    try:
+        return reversed_r == get_prime(reversed_n)
+    except IndexError:
+        # Reversed index exceeds precomputed range, so mirror property cannot be satisfied
+        return False
 
 
 def is_sheldon(r, b):
@@ -187,17 +229,19 @@ def analyze_properties(b, limit_index):
     }
 
 
-def visualize_properties(b, limit_index, figsize=(14, 12)):
+def visualize_properties(b, limit_index, figsize=(14, 12), save_filename=None):
     """Create comprehensive visualizations of property distributions in base b.
     
     Args:
         b: The base to check in (2-36)
         limit_index: Maximum prime index to check (1-indexed)
         figsize: Figure size as (width, height) tuple
+        save_filename: If provided, save the figure to this file path; otherwise return the figure object
     """
     import matplotlib.pyplot as plt
     import seaborn as sns
     import pandas as pd
+    import numpy as np
     
     # Analyze properties
     analysis = analyze_properties(b, limit_index)
@@ -239,7 +283,6 @@ def visualize_properties(b, limit_index, figsize=(14, 12)):
     # 3. Histogram: distribution of prime values by category
     ax3 = axes[1, 0]
     # Calculate shared bins based on all data to ensure consistent, visible widths
-    import numpy as np
     all_primes_with_properties = []
     for category in ['both', 'product_only', 'mirror_only']:
         subset = df[df['category'] == category]['prime'].values
@@ -287,7 +330,13 @@ def visualize_properties(b, limit_index, figsize=(14, 12)):
     # Increase space between top and bottom rows
     plt.subplots_adjust(hspace=0.55, wspace=0.3)
     
-    return fig, analysis
+    # Save or return figure
+    if save_filename:
+        fig.savefig(save_filename, dpi=150, bbox_inches='tight')
+        plt.close(fig)
+        return analysis
+    else:
+        return fig, analysis
 
 
 def print_property_results(b, limit_index):
@@ -322,24 +371,112 @@ def print_property_results(b, limit_index):
     print(f"\n{'='*70}\n")
 
 
-init_primes(1000000)
-base_to_visualize = 10
-primes_to_visualize = 100
+def estimate_required_prime_count(prime_count, bases):
+    """Estimate the number of primes needed to check mirror property.
+    
+    When checking the mirror property, reversed_n = reverse_digits_in_base(n, b)
+    can be much larger than n, especially in small bases. This function estimates
+    the maximum reversed index that could occur and returns the required prime count.
+    
+    Args:
+        prime_count: Number of primes we want to analyze
+        bases: List of bases to check
+    
+    Returns:
+        The number of primes to generate to ensure all mirror property checks are valid
+    """
+    max_reversed_n = 0
+    
+    for b in bases:
+        # Sample indices across the range to estimate maximum reversed index
+        # We'll check indices at different scales
+        test_indices = set()
+        
+        # Add some small indices
+        test_indices.update(range(1, min(1000, prime_count)))
+        
+        # Add regularly spaced indices across the range
+        if prime_count > 1000:
+            for multiplier in [100, 1000, 10000, 100000, 1000000]:
+                for scale in [1, 2, 5, 9]:
+                    idx = (scale * multiplier)
+                    if idx <= prime_count:
+                        test_indices.add(idx)
+            # Add the max index
+            test_indices.add(prime_count)
+        
+        # Compute reversed index for each test index
+        for n in test_indices:
+            reversed_n = reverse_digits_in_base(n, b)
+            max_reversed_n = max(max_reversed_n, reversed_n)
+    
+    # Add a 10% safety margin
+    required = int(max_reversed_n * 1.1)
+    return max(prime_count, required)
 
-# Print results
-print_property_results(base_to_visualize, primes_to_visualize)
 
-# Show visualization
-fig, analysis = visualize_properties(base_to_visualize, primes_to_visualize)
-plt.show()
+def analyze_all_bases(prime_count, bases, verbose=True, save_figures=True):
+    """Analyze and print property distributions across multiple bases.
+    
+    Args:
+        prime_count: Number of primes to analyze (e.g., 10_000_000)
+        bases: List of bases to check (e.g., [3, 4, 5, ..., 16])
+        verbose: If True, print results for each base; if False, only show summary
+        save_figures: If True, save visualization PNG files for each base
+    
+    Returns:
+        Dict mapping base -> analysis results
+    """
+    import os
+    
+    print(f"\n{'='*80}")
+    print(f"Analyzing first {prime_count:,} primes across bases {bases}")
+    print(f"Estimating required prime cache size to check mirror property...")
+    
+    # Estimate how many primes we need to generate to handle mirror property checks
+    required_count = estimate_required_prime_count(prime_count, bases)
+    
+    if required_count > prime_count:
+        print(f"Mirror property checks require {required_count:,} primes (vs {prime_count:,} to analyze)")
+        print(f"Generating {required_count:,} primes...")
+    else:
+        print(f"Initializing prime cache for {prime_count:,} primes...")
+    
+    print(f"{'='*80}\n")
+    
+    actual_count = init_primes_by_count(required_count)
+    print(f"Generated {actual_count:,} primes\n")
+    
+    results = {}
+    for b in bases:
+        print(f"Analyzing base {b}...")
+        # Analyze only the first prime_count primes (not the extra ones needed for mirror property)
+        analysis = analyze_properties(b, prime_count)
+        results[b] = analysis
+        
+        if verbose:
+            print_property_results(b, prime_count)
+        else:
+            # Compact summary
+            print(f"  Sheldon: {len(analysis['both'])}, Product only: {len(analysis['product_only'])}, Mirror only: {len(analysis['mirror_only'])}")
+        
+        # Save figure for this base
+        if save_figures:
+            filename = f"base_{b}_properties.png"
+            print(f"  Saving figure to {filename}...")
+            visualize_properties(b, prime_count, save_filename=filename)
+            print(f"  ✓ Saved {filename}")
+    
+    print(f"\n{'='*80}")
+    print(f"Analysis complete. {len(bases)} PNG files saved to current directory.")
+    print(f"{'='*80}\n")
+    
+    return results
 
-print(f"Base {base_to_visualize} Analysis (first {primes_to_visualize} primes):")
-print(f"  Sheldon primes (both): {len(analysis['both'])}")
-print(f"  Product only: {len(analysis['product_only'])}")
-print(f"  Mirror only: {len(analysis['mirror_only'])}")
-print(f"  Neither: {len(analysis['neither'])}")
-
-
-# Initial test
-# init_primes(1000000)  # Initialize prime cache up to 1,000,000
-# print(is_sheldon(73, 10))
+# Analyze first 10 million primes in bases 3-16 (except 10)
+if __name__ == "__main__":
+    prime_count = 10_000_000
+    bases = [b for b in range(3, 17) if b != 10]  # 3-16, excluding 10
+    
+    # This will initialize once for all bases
+    results = analyze_all_bases(prime_count, bases, verbose=True)   

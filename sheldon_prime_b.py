@@ -25,6 +25,7 @@ def get_prime(n):
         
         candidate += 2  # Only check odd numbers
 
+
 def convert_to_base(b, n):
     """Convert integer n to base b and return as an integer."""
     if n == 0:
@@ -45,9 +46,11 @@ def convert_to_base(b, n):
     
     return result
 
+
 def reverse_digits(r):
     """Return the number with its digits reversed."""
     return int(str(r)[::-1])
+
 
 def multiply_digits(r):
     """Return the product of the digits of r."""
@@ -55,6 +58,19 @@ def multiply_digits(r):
     for digit in str(r):
         product *= int(digit)
     return product
+
+
+def check_product_property(r, n):
+    """Check if the product of digits of r equals n."""
+    return multiply_digits(r) == n
+
+
+def check_mirror_property(r, n):
+    """Check if the reverse of r is the prime at position reverse_digits(n)."""
+    reversed_n = reverse_digits(n)
+    reversed_r = reverse_digits(r)
+    return reversed_r == get_prime(reversed_n)
+
 
 def is_sheldon(r):
     """Check if r is a Sheldon prime.
@@ -78,14 +94,7 @@ def is_sheldon(r):
             return False
         n += 1
     
-    # Check if the product of digits equals n
-    if multiply_digits(r) != n:
-        return False
-    
-    # r is the nth prime, now check if reverse_digits(r) == get_prime(reverse(n))
-    reversed_n = reverse_digits(n)
-    reversed_r = reverse_digits(r)
-    
-    return reversed_r == get_prime(reversed_n)
+    # Check both properties
+    return check_product_property(r, n) and check_mirror_property(r, n)
 
 print(is_sheldon(73))

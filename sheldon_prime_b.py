@@ -187,7 +187,7 @@ def analyze_properties(b, limit_index):
     }
 
 
-def visualize_properties(b, limit_index, figsize=(14, 10)):
+def visualize_properties(b, limit_index, figsize=(14, 12)):
     """Create comprehensive visualizations of property distributions in base b.
     
     Args:
@@ -195,6 +195,9 @@ def visualize_properties(b, limit_index, figsize=(14, 10)):
         limit_index: Maximum prime index to check (1-indexed)
         figsize: Figure size as (width, height) tuple
     """
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+    import pandas as pd
     
     # Analyze properties
     analysis = analyze_properties(b, limit_index)
@@ -235,10 +238,28 @@ def visualize_properties(b, limit_index, figsize=(14, 10)):
     
     # 3. Histogram: distribution of prime values by category
     ax3 = axes[1, 0]
-    for category in ['product_only', 'mirror_only', 'both']:
-        subset = df[df['category'] == category]['prime']
+    # Calculate shared bins based on all data to ensure consistent, visible widths
+    import numpy as np
+    all_primes_with_properties = []
+    for category in ['both', 'product_only', 'mirror_only']:
+        subset = df[df['category'] == category]['prime'].values
         if len(subset) > 0:
-            ax3.hist(subset, bins=20, alpha=0.6, label=category, color=colors[category])
+            all_primes_with_properties.extend(subset)
+    
+    # Use adaptive bin sizing: 20 bins or fewer bins if data is sparse
+    if len(all_primes_with_properties) > 0:
+        data_range = max(all_primes_with_properties) - min(all_primes_with_properties)
+        num_bins = max(10, min(30, len(all_primes_with_properties) // 2))
+        bin_edges = np.linspace(min(all_primes_with_properties), max(all_primes_with_properties), num_bins + 1)
+    else:
+        bin_edges = 30
+    
+    # Plot histograms with shared bins
+    for category, color in [('both', colors['both']), ('product_only', colors['product_only']), ('mirror_only', colors['mirror_only'])]:
+        subset = df[df['category'] == category]['prime'].values
+        if len(subset) > 0:
+            ax3.hist(subset, bins=bin_edges, alpha=0.6, label=category, color=color, edgecolor='black', linewidth=0.8)
+    
     ax3.set_xlabel('Prime Value', fontsize=11)
     ax3.set_ylabel('Frequency', fontsize=11)
     ax3.set_title('Prime Value Distribution (Properties Found)', fontsize=12, fontweight='bold')
@@ -247,10 +268,6 @@ def visualize_properties(b, limit_index, figsize=(14, 10)):
     
     # 4. Property co-occurrence heatmap
     ax4 = axes[1, 1]
-    product_mirror_counts = pd.DataFrame({
-        'Has Product': [df[df['product_property']].shape[0], df[~df['product_property']].shape[0]],
-        'Has Mirror': [df[df['mirror_property']].shape[0], df[~df['mirror_property']].shape[0]]
-    }, index=['Yes', 'No'])
     
     # Create a simpler 2x2 co-occurrence matrix
     cooccurrence = pd.DataFrame([
@@ -267,15 +284,53 @@ def visualize_properties(b, limit_index, figsize=(14, 10)):
     sns.heatmap(cooccurrence, annot=True, fmt='d', cmap='YlOrRd', ax=ax4, cbar_kws={'label': 'Count'})
     ax4.set_title('Property Co-occurrence Matrix', fontsize=12, fontweight='bold')
     
-    plt.tight_layout()
+    # Increase space between top and bottom rows
+    plt.subplots_adjust(hspace=0.55, wspace=0.3)
+    
     return fig, analysis
 
 
-# Example usage (commented out to avoid side effects):
+def print_property_results(b, limit_index):
+    """Print detailed results of property analysis for base b.
+    
+    Args:
+        b: The base to check in (2-36)
+        limit_index: Maximum prime index to check (1-indexed)
+    """
+    analysis = analyze_properties(b, limit_index)
+    
+    print(f"\n{'='*70}")
+    print(f"Property Analysis Results for Base {b} (First {limit_index} Primes)")
+    print(f"{'='*70}\n")
+    
+    print(f"Sheldon Primes (Both Properties) [{len(analysis['both'])} total]:")
+    print(f"  {analysis['both']}\n")
+    
+    print(f"Product Property Only [{len(analysis['product_only'])} total]:")
+    print(f"  {analysis['product_only']}\n")
+    
+    print(f"Mirror Property Only [{len(analysis['mirror_only'])} total]:")
+    print(f"  {analysis['mirror_only']}\n")
+    
+    print(f"Neither Property [{len(analysis['neither'])} total]")
+    if len(analysis['neither']) <= 20:
+        print(f"  {analysis['neither']}")
+    else:
+        # print(f"  {analysis['neither'][:20]} ... (showing first 20 of {len(analysis['neither'])})")
+        pass # No interest in neither!!
+    
+    print(f"\n{'='*70}\n")
+
+
 init_primes(1000000)
 base_to_visualize = 10
-primes_to_visualize = 500
-fig, analysis = visualize_properties(base_to_visualize, primes_to_visualize) # Base (first arg), first (second arg) primes
+primes_to_visualize = 100
+
+# Print results
+print_property_results(base_to_visualize, primes_to_visualize)
+
+# Show visualization
+fig, analysis = visualize_properties(base_to_visualize, primes_to_visualize)
 plt.show()
 
 print(f"Base {base_to_visualize} Analysis (first {primes_to_visualize} primes):")

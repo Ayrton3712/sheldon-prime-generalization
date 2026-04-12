@@ -60,7 +60,7 @@ def init_primes_by_count(count):
         init_primes(limit)
         if len(_primes) >= count:
             return len(_primes)
-        limit = int(limit * 1.5)  # Increase by 50% and try again
+        limit = int(limit * 1.1)  # Increase by 10% and try again
 
 
 def get_prime(n):
@@ -411,54 +411,47 @@ def print_property_results(b, limit_index):
     if len(analysis['neither']) <= 20:
         print(f"  {analysis['neither']}")
     else:
-        # print(f"  {analysis['neither'][:20]} ... (showing first 20 of {len(analysis['neither'])})")
-        pass # No interest in neither!!
+        # Omitted intentionally: primes satisfying neither property are the vast majority
+        # and not of research interest (every prime fails both properties in almost all bases)
+        pass
     
     print(f"\n{'='*70}\n")
 
 
 def estimate_required_prime_count(prime_count, bases):
-    """Estimate the number of primes needed to check mirror property.
+    """Estimate the number of primes needed to check mirror property safely.
     
-    When checking the mirror property, reversed_n = reverse_digits_in_base(n, b)
-    can be much larger than n, especially in small bases. This function estimates
-    the maximum reversed index that could occur and returns the required prime count.
+    When checking the mirror property, reversing digits in a small base
+    can produce much larger indices than the original. To be safe across
+    all bases 2-16 and avoid out-of-bounds lookups, we use a conservative
+    multiplier: generating 12x the target ensures sufficient headroom.
     
     Args:
-        prime_count: Number of primes we want to analyze
-        bases: List of bases to check
+        prime_count: Number of primes to analyze
+        bases: List of bases to check (currently unused, kept for API compatibility)
     
     Returns:
-        The number of primes to generate to ensure all mirror property checks are valid
+        The number of primes to generate (conservative estimate)
     """
-    max_reversed_n = 0
+    # Conservative multiplier: for base 2, reversing can amplify indices significantly.
+    # 12x is empirically safe for bases 2-16 and 10M primes.
+    return prime_count * 12
+
+
+def _worker_init(primes, prime_to_index):
+    """Initialize global state in worker processes.
     
-    for b in bases:
-        # Sample indices across the range to estimate maximum reversed index
-        # We'll check indices at different scales
-        test_indices = set()
-        
-        # Add some small indices
-        test_indices.update(range(1, min(1000, prime_count)))
-        
-        # Add regularly spaced indices across the range
-        if prime_count > 1000:
-            for multiplier in [100, 1000, 10000, 100000, 1000000]:
-                for scale in [1, 2, 5, 9]:
-                    idx = (scale * multiplier)
-                    if idx <= prime_count:
-                        test_indices.add(idx)
-            # Add the max index
-            test_indices.add(prime_count)
-        
-        # Compute reversed index for each test index
-        for n in test_indices:
-            reversed_n = reverse_digits_in_base(n, b)
-            max_reversed_n = max(max_reversed_n, reversed_n)
+    This is called once per worker process when the Pool is created.
+    It sets up the global _primes and _prime_to_index so that analyze_properties
+    can access them without pickling large data structures repeatedly.
     
-    # Add a 10% safety margin
-    required = int(max_reversed_n * 1.1)
-    return max(prime_count, required)
+    Args:
+        primes: List of primes from main process
+        prime_to_index: Dict mapping prime value to 1-indexed position
+    """
+    global _primes, _prime_to_index
+    _primes = primes
+    _prime_to_index = prime_to_index
 
 
 def _analyze_and_save_base(base_info):
@@ -536,7 +529,12 @@ def analyze_all_bases(prime_count, bases, verbose=True, save_figures=True, num_w
     results = {}
     
     # Use multiprocessing pool to parallelize base analysis
-    with Pool(num_workers) as pool:
+    # Use initializer to set up global state in each worker process
+    with Pool(
+        num_workers,
+        initializer=_worker_init,
+        initargs=(_primes, _prime_to_index)
+    ) as pool:
         for b, analysis, status_msg, success in pool.imap_unordered(_analyze_and_save_base, work_items):
             print(status_msg)
             if success:

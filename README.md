@@ -1,30 +1,21 @@
 # Sheldon Primes in Arbitrary Bases
 
-A computational exploration of Sheldon primes generalized to bases 2–16, extending the open problems posed by Pomerance & Spicer (2019).
+A computational exploration of Sheldon primes generalized to bases 2-16, extending the open problems posed by Pomerance & Spicer (2019).
 
 ## Background
 
 A **Sheldon prime** is a prime $p_n$ (the $n$-th prime) satisfying two properties, originally defined in base 10:
 
-- **Product property**: the product of the base-$b$ digits of $p_n$ equals $n$
-- **Mirror property**: reversing the base-$b$ digits of $p_n$ yields the prime at the reversed index — i.e., $\text{rev}_b(p_n) = p_{\text{rev}_b(n)}$
+- **Product property**: the product of the base-b digits of $p _ n$ equals $n$.
+- **Mirror property**: reversing the base-b digits of $p_n$ yields the prime at the reversed index. That is, ${rev} _ b(p _ n) = p _ {{rev} _ b(n)}$.
 
-In base 10, the only Sheldon prime is 73 (Pomerance & Spicer, 2019). This project asks: *do Sheldon primes exist in other bases?*
-
-## Repository Structure
-
-```
-.
-├── sheldon.py       # Main script
-├── primes.npy       # Cached prime list (generated on first run)
-└── base_*.svg       # Per-base visualization outputs
-```
+In base 10, the only Sheldon prime is 73 (Pomerance & Spicer, 2019). This project asks: *Do Sheldon primes exist in other bases?*
 
 ## How It Works
 
 ### 1. Prime Generation
 
-Primes are generated once via the **Sieve of Eratosthenes** and cached to `primes.npy` for reuse across runs. To safely check the mirror property, the cache must cover indices larger than the analysis range — reversing digits in a small base can produce indices much larger than the original. A **12× multiplier** over the analysis range provides sufficient headroom for all bases 2–16.
+Primes are generated once via the **Sieve of Eratosthenes** and cached to `primes.npy` for reuse across runs. To safely check the mirror property, the cache must cover indices larger than the analysis range. Reversing digits in a small base can produce indices much larger than the original. A **12x multiplier** over the analysis range provides sufficient headroom for all bases 2–16.
 
 ```python
 init_primes_by_count(required_count, cache_file="primes.npy")
@@ -34,7 +25,7 @@ On subsequent runs the sieve is skipped and primes are loaded from disk in secon
 
 ### 2. Property Checks
 
-Both properties are computed purely from base-$b$ digit representations of the underlying integers. Primality itself is base-independent — only the digit-level operations change across bases.
+Both properties are computed purely from base-b digit representations of the underlying integers. Primality itself is base-independent. Only the digit-level operations change across bases.
 
 ```python
 check_product_property(r, n, b)   # product of base-b digits of r == n
@@ -55,7 +46,7 @@ Each base is independent, so bases are analyzed concurrently using `multiprocess
 Pool(num_workers, initializer=_worker_init, initargs=(_primes,))
 ```
 
-Only `_primes` is shared — not the `prime→index` dict — since workers iterate by index and never need reverse lookups. Results stream back via `imap_unordered` so each base prints as it finishes.
+Only `_primes` is shared, not the `prime : index` dict, since workers iterate by index and never need reverse lookups. Results stream back via `imap_unordered` so each base prints as it finishes.
 
 ### 5. Visualization
 
@@ -70,7 +61,7 @@ Only `_primes` is shared — not the `prime→index` dict — since workers iter
 ```bash
 pip install pandas numpy matplotlib
 
-python sheldon.py
+python sheldon_prime_b.py
 ```
 
 By default, analyzes the first **1,000,000 primes** across **bases 2–16** (excluding 10). Edit the `__main__` block to change the range:
@@ -80,7 +71,7 @@ prime_count = 1_000_000
 bases = [b for b in range(2, 17) if b != 10]
 ```
 
-On first run, ~12M primes are generated and saved to `primes.npy` (~90 MB). Subsequent runs load from cache and proceed directly to analysis.
+On first run, approximately 12M primes are generated and saved to `primes.npy` (~100 MB, not included in the repo). Subsequent runs load from cache and proceed directly to analysis.
 
 ## Running on a Remote Server
 
@@ -88,10 +79,43 @@ For large runs, use `tmux` to keep the process alive across SSH disconnections:
 
 ```bash
 tmux new -s sheldon
-python sheldon.py 2>&1 | tee run_log.txt
+python sheldon_prime_b.py 2>&1 | tee run_log.txt
 # Detach: Ctrl+B, D
 # Reattach later: tmux attach -t sheldon
 ```
+
+## Results
+
+The results for all bases are summarized in the following table, directly obtained from the SVG property analysis output files. Some things to note:
+- There are no Sheldon primes in the first one million primes across all bases from 2 to 16, excluding base 10.
+- The maximum number of primes that only satisfy the mirror property is 16 (in base 16).
+- The maximum number of primes that only satisfy the product property is 4 (in bases 14 and 11).
+<table border="1">
+  <thead>
+    <tr>
+      <th>Base</th>
+      <th>Mirror only</th>
+      <th>Product only</th>
+      <th>Both mirror and product (Sheldon prime)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>2</td><td>12</td><td>0</td><td>0</td></tr>
+    <tr><td>3</td><td>6</td><td>0</td><td>0</td></tr>
+    <tr><td>4</td><td>10</td><td>1</td><td>0</td></tr>
+    <tr><td>5</td><td>5</td><td>3</td><td>0</td></tr>
+    <tr><td>6</td><td>7</td><td>2</td><td>0</td></tr>
+    <tr><td>7</td><td>3</td><td>3</td><td>0</td></tr>
+    <tr><td>8</td><td>5</td><td>0</td><td>0</td></tr>
+    <tr><td>9</td><td>8</td><td>2</td><td>0</td></tr>
+    <tr><td>11</td><td>9</td><td>4</td><td>0</td></tr>
+    <tr><td>12</td><td>9</td><td>2</td><td>0</td></tr>
+    <tr><td>13</td><td>11</td><td>2</td><td>0</td></tr>
+    <tr><td>14</td><td>11</td><td>4</td><td>0</td></tr>
+    <tr><td>15</td><td>8</td><td>2</td><td>0</td></tr>
+    <tr><td>16</td><td>16</td><td>1</td><td>0</td></tr>
+  </tbody>
+</table>
 
 ## References
 

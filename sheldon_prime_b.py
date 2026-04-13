@@ -317,7 +317,7 @@ def visualize_properties(b, limit_index, save_filename=None):
     Args:
         b: The base to check in (2-36)
         limit_index: Maximum prime index to check (1-indexed)
-        save_filename: If provided, save the figure to this PNG file path; otherwise return the figure object
+        save_filename: If provided, save the figure to this SVG file path; otherwise return the figure object
     
     Returns:
         Plotly figure object (or None if saved to file)
@@ -461,7 +461,7 @@ def visualize_properties(b, limit_index, save_filename=None):
     
     # Save or return figure
     if save_filename:
-        fig.write_image(save_filename)
+        fig.write_image(save_filename, format='svg')
         return analysis
     else:
         return fig, analysis
@@ -554,7 +554,7 @@ def _analyze_and_save_base(base_info):
         
         # Save visualization if requested
         if save_figures:
-            filename = f"base_{b}_properties.png"
+            filename = f"base_{b}_properties.svg"
             visualize_properties(b, prime_count, save_filename=filename)
             status_msg += f" | Saved {filename}"
         
@@ -627,16 +627,16 @@ def analyze_all_bases(prime_count, bases, verbose=True, save_figures=True, num_w
                     print_property_results_from_analysis(b, prime_count, analysis)
     
     print(f"\n{'='*80}")
-    print(f"Analysis complete. {len(results)} PNG files saved to current directory.")
-    print(f"Open the .png files to view the property distribution visualizations.")
+    print(f"Analysis complete. {len(results)} SVG files saved to current directory.")
+    print(f"Open the .svg files in any browser to view the property distribution visualizations.")
     print(f"{'='*80}\n")
     
     return results
 
-# Analyze first million primes in base 2 only
+# Analyze first million primes in bases 2-16 except 10
 if __name__ == "__main__":
     prime_count = 1_000_000
-    bases = [2]
+    bases = [b for b in range(2, 17) if b != 10]
     
     # Primes will be cached to "primes.npy" after first generation.
     # On subsequent runs, the cached file will be loaded instantly!

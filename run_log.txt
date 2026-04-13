@@ -1,0 +1,267 @@
+
+================================================================================
+Analyzing first 1,000,000 primes across bases [3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16]
+Using 8 worker processes
+Estimating required prime cache size to check mirror property...
+Mirror property checks require 12,000,000 primes (vs 1,000,000 to analyze)
+Generating 12,000,000 primes...
+================================================================================
+
+Saved 14,374,793 primes to primes.npy (109.7 MB)
+Initialized prime cache with 14,374,793 primes
+
+Analyzing 13 bases in parallel...
+
+Base 11: Sheldon: 0, Product only: 4, Mirror only: 9 | Saved base_11_properties.html
+
+======================================================================
+Property Analysis Results for Base 11 (First 1000000 Primes)
+======================================================================
+
+Sheldon Primes (Both Properties) [0 total]:
+  []
+
+Product Property Only [4 total]:
+  [19, 37, 113, 1129]
+
+Mirror Property Only [9 total]:
+  [2, 3, 5, 7, 64633, 75641, 119233, 7518361, 15023423]
+
+Neither Property [999987 total]
+
+======================================================================
+
+Base 9: Sheldon: 0, Product only: 2, Mirror only: 8 | Saved base_9_properties.html
+
+======================================================================
+Property Analysis Results for Base 9 (First 1000000 Primes)
+======================================================================
+
+Sheldon Primes (Both Properties) [0 total]:
+  []
+
+Product Property Only [2 total]:
+  [149, 226697]
+
+Mirror Property Only [8 total]:
+  [2, 3, 5, 7, 173, 1163, 1747, 16481]
+
+Neither Property [999990 total]
+
+======================================================================
+
+Base 8: Sheldon: 0, Product only: 0, Mirror only: 5 | Saved base_8_properties.html
+
+======================================================================
+Property Analysis Results for Base 8 (First 1000000 Primes)
+======================================================================
+
+Sheldon Primes (Both Properties) [0 total]:
+  []
+
+Product Property Only [0 total]:
+  []
+
+Mirror Property Only [5 total]:
+  [2, 3, 5, 7, 251]
+
+Neither Property [999995 total]
+
+======================================================================
+
+Base 7: Sheldon: 0, Product only: 3, Mirror only: 3 | Saved base_7_properties.html
+
+======================================================================
+Property Analysis Results for Base 7 (First 1000000 Primes)
+======================================================================
+
+Sheldon Primes (Both Properties) [0 total]:
+  []
+
+Product Property Only [3 total]:
+  [13, 1511, 114113]
+
+Mirror Property Only [3 total]:
+  [2, 3, 5]
+
+Neither Property [999994 total]
+
+======================================================================
+
+Base 6: Sheldon: 0, Product only: 2, Mirror only: 7 | Saved base_6_properties.html
+
+======================================================================
+Property Analysis Results for Base 6 (First 1000000 Primes)
+======================================================================
+
+Sheldon Primes (Both Properties) [0 total]:
+  []
+
+Product Property Only [2 total]:
+  [11, 3413]
+
+Mirror Property Only [7 total]:
+  [2, 3, 5, 7, 43, 191, 7517]
+
+Neither Property [999991 total]
+
+======================================================================
+
+Base 5: Sheldon: 0, Product only: 3, Mirror only: 5 | Saved base_5_properties.html
+
+======================================================================
+Property Analysis Results for Base 5 (First 1000000 Primes)
+======================================================================
+
+Sheldon Primes (Both Properties) [0 total]:
+  []
+
+Product Property Only [3 total]:
+  [13, 89, 593]
+
+Mirror Property Only [5 total]:
+  [2, 3, 701, 911, 77999]
+
+Neither Property [999992 total]
+
+======================================================================
+
+Base 4: Sheldon: 0, Product only: 1, Mirror only: 10 | Saved base_4_properties.html
+
+======================================================================
+Property Analysis Results for Base 4 (First 1000000 Primes)
+======================================================================
+
+Sheldon Primes (Both Properties) [0 total]:
+  []
+
+Product Property Only [1 total]:
+  [251]
+
+Mirror Property Only [10 total]:
+  [2, 3, 5, 29, 59, 257, 1627, 3673, 5861, 104281]
+
+Neither Property [999989 total]
+
+======================================================================
+
+Base 3: Sheldon: 0, Product only: 0, Mirror only: 6 | Saved base_3_properties.html
+
+======================================================================
+Property Analysis Results for Base 3 (First 1000000 Primes)
+======================================================================
+
+Sheldon Primes (Both Properties) [0 total]:
+  []
+
+Product Property Only [0 total]:
+  []
+
+Mirror Property Only [6 total]:
+  [2, 173, 103903, 5875273, 11307929, 11654987]
+
+Neither Property [999994 total]
+
+======================================================================
+
+Base 12: Sheldon: 0, Product only: 2, Mirror only: 9 | Saved base_12_properties.html
+
+======================================================================
+Property Analysis Results for Base 12 (First 1000000 Primes)
+======================================================================
+
+Sheldon Primes (Both Properties) [0 total]:
+  []
+
+Product Property Only [2 total]:
+  [29, 7723]
+
+Mirror Property Only [9 total]:
+  [2, 3, 5, 7, 11, 13, 1087, 1607, 110933]
+
+Neither Property [999989 total]
+
+======================================================================
+
+Base 13: Sheldon: 0, Product only: 2, Mirror only: 11 | Saved base_13_properties.html
+
+======================================================================
+Property Analysis Results for Base 13 (First 1000000 Primes)
+======================================================================
+
+Sheldon Primes (Both Properties) [0 total]:
+  []
+
+Product Property Only [2 total]:
+  [3181, 25579]
+
+Mirror Property Only [11 total]:
+  [2, 3, 5, 7, 11, 1399, 1987, 86531, 164953, 257353, 302273]
+
+Neither Property [999987 total]
+
+======================================================================
+
+Base 15: Sheldon: 0, Product only: 2, Mirror only: 8 | Saved base_15_properties.html
+
+======================================================================
+Property Analysis Results for Base 15 (First 1000000 Primes)
+======================================================================
+
+Sheldon Primes (Both Properties) [0 total]:
+  []
+
+Product Property Only [2 total]:
+  [313, 997]
+
+Mirror Property Only [8 total]:
+  [2, 3, 5, 7, 11, 13, 24443, 29077]
+
+Neither Property [999990 total]
+
+======================================================================
+
+Base 16: Sheldon: 0, Product only: 1, Mirror only: 16 | Saved base_16_properties.html
+
+======================================================================
+Property Analysis Results for Base 16 (First 1000000 Primes)
+======================================================================
+
+Sheldon Primes (Both Properties) [0 total]:
+  []
+
+Product Property Only [1 total]:
+  [10859]
+
+Mirror Property Only [16 total]:
+  [2, 3, 5, 7, 11, 13, 17, 337, 883, 1381, 1493, 1879, 2521, 3019, 4079, 93281]
+
+Neither Property [999983 total]
+
+======================================================================
+
+Base 14: Sheldon: 0, Product only: 4, Mirror only: 11 | Saved base_14_properties.html
+
+======================================================================
+Property Analysis Results for Base 14 (First 1000000 Primes)
+======================================================================
+
+Sheldon Primes (Both Properties) [0 total]:
+  []
+
+Product Property Only [4 total]:
+  [23, 47, 643, 29921]
+
+Mirror Property Only [11 total]:
+  [2, 3, 5, 7, 11, 13, 197, 281, 379, 1069, 7705937]
+
+Neither Property [999985 total]
+
+======================================================================
+
+
+================================================================================
+Analysis complete. 13 interactive HTML files saved to current directory.
+Open the .html files in your browser to explore the visualizations with zoom, pan, and hover details.
+================================================================================
+

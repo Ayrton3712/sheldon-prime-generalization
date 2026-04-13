@@ -633,9 +633,9 @@ def analyze_all_bases(prime_count, bases, verbose=True, save_figures=True, num_w
     
     return results
 
-# Analyze first 10 million primes in bases 3-16 (except 10)
+# Analyze first million primes in bases 3-16 (except 10)
 if __name__ == "__main__":
-    prime_count = 10_000_000
+    prime_count = 1_000_000
     bases = [b for b in range(3, 17) if b != 10]  # 3-16, excluding 10
     
     # Primes will be cached to "primes.npy" after first generation.

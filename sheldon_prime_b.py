@@ -333,26 +333,14 @@ def visualize_properties(b, limit_index, save_filename=None):
     colors = {'both': '#2ecc71', 'product_only': '#3498db', 'mirror_only': '#e74c3c', 'neither': '#95a5a6'}
     color_map = {cat: colors[cat] for cat in ['both', 'product_only', 'mirror_only', 'neither']}
     
-    # Create 2x2 subplot figure
-    fig, axes = plt.subplots(2, 2, figsize=(14, 9))
+    # Create 1x3 subplot figure (removing scatter plot for size optimization)
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
     fig.suptitle(f'Property Distribution in Base {b} (First {limit_index:,} Primes)', fontsize=14, fontweight='bold')
     
     category_order = ['product_only', 'mirror_only', 'both', 'neither']
     
-    # 1. Scatter plot: prime value vs index, colored by category (top-left)
-    ax = axes[0, 0]
-    for category in category_order:
-        subset = df[df['category'] == category]
-        ax.scatter(subset['index'], subset['prime'], label=category, 
-                  color=color_map[category], s=20, alpha=0.7)
-    ax.set_xlabel('Prime Index (n)')
-    ax.set_ylabel('Prime Value')
-    ax.set_title('Prime Value vs Index by Category')
-    ax.legend()
-    ax.grid(True, alpha=0.3)
-    
-    # 2. Bar chart: count by category (top-right)
-    ax = axes[0, 1]
+    # 1. Bar chart: count by category (left)
+    ax = axes[0]
     category_counts = df['category'].value_counts()
     category_counts = category_counts.reindex(category_order, fill_value=0)
     bars = ax.bar(range(len(category_order)), category_counts.values,
@@ -368,8 +356,8 @@ def visualize_properties(b, limit_index, save_filename=None):
         ax.text(bar.get_x() + bar.get_width()/2., height,
                 f'{int(height)}', ha='center', va='bottom', fontsize=9)
     
-    # 3. Histogram: distribution of prime values by category (bottom-left)
-    ax = axes[1, 0]
+    # 2. Histogram: distribution of prime values by category (middle)
+    ax = axes[1]
     all_primes_with_properties = []
     for category in ['both', 'product_only', 'mirror_only']:
         subset = df[df['category'] == category]['prime'].values
@@ -391,8 +379,8 @@ def visualize_properties(b, limit_index, save_filename=None):
     ax.legend()
     ax.grid(True, alpha=0.3, axis='y')
     
-    # 4. Heatmap: property co-occurrence (bottom-right)
-    ax = axes[1, 1]
+    # 3. Heatmap: property co-occurrence (right)
+    ax = axes[2]
     cooccurrence = np.array([
         [
             df[(df['product_property']) & (df['mirror_property'])].shape[0],  # Both

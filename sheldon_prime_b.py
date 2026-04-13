@@ -312,7 +312,7 @@ def analyze_properties(b, limit_index):
 
 
 def visualize_properties(b, limit_index, save_filename=None):
-    """Create visualizations of property distributions in base b using Plotly.
+    """Create visualizations of property distributions in base b using matplotlib.
     
     Args:
         b: The base to check in (2-36)
@@ -320,11 +320,10 @@ def visualize_properties(b, limit_index, save_filename=None):
         save_filename: If provided, save the figure to this SVG file path; otherwise return the figure object
     
     Returns:
-        Plotly figure object (or None if saved to file)
+        Matplotlib figure object (or None if saved to file)
     """
-    import plotly.graph_objects as go
-    import plotly.express as px
-    import numpy as np
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as mpatches
     
     # Analyze properties
     analysis = analyze_properties(b, limit_index)
@@ -334,64 +333,49 @@ def visualize_properties(b, limit_index, save_filename=None):
     colors = {'both': '#2ecc71', 'product_only': '#3498db', 'mirror_only': '#e74c3c', 'neither': '#95a5a6'}
     color_map = {cat: colors[cat] for cat in ['both', 'product_only', 'mirror_only', 'neither']}
     
-    # Create subplots: 2x2 grid
-    from plotly.subplots import make_subplots
-    fig = make_subplots(
-        rows=2, cols=2,
-        subplot_titles=(
-            'Prime Value vs Index by Category',
-            'Distribution by Category',
-            'Prime Value Distribution (Properties Found)',
-            'Property Co-occurrence Matrix'
-        ),
-        specs=[
-            [{'type': 'scatter'}, {'type': 'bar'}],
-            [{'type': 'histogram'}, {'type': 'heatmap'}]
-        ],
-        vertical_spacing=0.15,
-        horizontal_spacing=0.12
-    )
+    # Create 2x2 subplot figure
+    fig, axes = plt.subplots(2, 2, figsize=(14, 9))
+    fig.suptitle(f'Property Distribution in Base {b} (First {limit_index:,} Primes)', fontsize=14, fontweight='bold')
     
-    # 1. Scatter plot: prime value vs index, colored by category
     category_order = ['product_only', 'mirror_only', 'both', 'neither']
+    
+    # 1. Scatter plot: prime value vs index, colored by category (top-left)
+    ax = axes[0, 0]
     for category in category_order:
         subset = df[df['category'] == category]
-        fig.add_trace(
-            go.Scatter(
-                x=subset['index'],
-                y=subset['prime'],
-                mode='markers',
-                name=category,
-                marker=dict(color=color_map[category], size=5, opacity=0.7),
-                hovertemplate=f'<b>{category}</b><br>Index: %{{x}}<br>Prime: %{{y}}<extra></extra>'
-            ),
-            row=1, col=1
-        )
+        ax.scatter(subset['index'], subset['prime'], label=category, 
+                  color=color_map[category], s=20, alpha=0.7)
+    ax.set_xlabel('Prime Index (n)')
+    ax.set_ylabel('Prime Value')
+    ax.set_title('Prime Value vs Index by Category')
+    ax.legend()
+    ax.grid(True, alpha=0.3)
     
-    # 2. Bar chart: count by category
+    # 2. Bar chart: count by category (top-right)
+    ax = axes[0, 1]
     category_counts = df['category'].value_counts()
     category_counts = category_counts.reindex(category_order, fill_value=0)
-    fig.add_trace(
-        go.Bar(
-            x=category_order,
-            y=category_counts.values,
-            marker=dict(color=[color_map[cat] for cat in category_order]),
-            text=category_counts.values,
-            textposition='outside',
-            hovertemplate='<b>%{x}</b><br>Count: %{y}<extra></extra>',
-            showlegend=False
-        ),
-        row=1, col=2
-    )
+    bars = ax.bar(range(len(category_order)), category_counts.values,
+                   color=[color_map[cat] for cat in category_order])
+    ax.set_xticks(range(len(category_order)))
+    ax.set_xticklabels(category_order, rotation=45, ha='right')
+    ax.set_ylabel('Count')
+    ax.set_title('Distribution by Category')
+    ax.grid(True, alpha=0.3, axis='y')
+    # Add count labels on bars
+    for bar in bars:
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height,
+                f'{int(height)}', ha='center', va='bottom', fontsize=9)
     
-    # 3. Histogram: distribution of prime values by category
+    # 3. Histogram: distribution of prime values by category (bottom-left)
+    ax = axes[1, 0]
     all_primes_with_properties = []
     for category in ['both', 'product_only', 'mirror_only']:
         subset = df[df['category'] == category]['prime'].values
         if len(subset) > 0:
             all_primes_with_properties.extend(subset)
     
-    # Adaptive bin sizing
     if len(all_primes_with_properties) > 0:
         num_bins = max(10, min(30, len(all_primes_with_properties) // 2))
     else:
@@ -400,20 +384,16 @@ def visualize_properties(b, limit_index, save_filename=None):
     for category, color in [('both', colors['both']), ('product_only', colors['product_only']), ('mirror_only', colors['mirror_only'])]:
         subset = df[df['category'] == category]['prime'].values
         if len(subset) > 0:
-            fig.add_trace(
-                go.Histogram(
-                    x=subset,
-                    name=category,
-                    marker=dict(color=color),
-                    opacity=0.7,
-                    nbinsx=num_bins,
-                    hovertemplate='<b>%{fullData.name}</b><br>Range: %{x}<br>Count: %{y}<extra></extra>'
-                ),
-                row=2, col=1
-            )
+            ax.hist(subset, bins=num_bins, label=category, color=color, alpha=0.7)
+    ax.set_xlabel('Prime Value')
+    ax.set_ylabel('Frequency')
+    ax.set_title('Prime Value Distribution (Properties Found)')
+    ax.legend()
+    ax.grid(True, alpha=0.3, axis='y')
     
-    # 4. Heatmap: property co-occurrence
-    cooccurrence = [
+    # 4. Heatmap: property co-occurrence (bottom-right)
+    ax = axes[1, 1]
+    cooccurrence = np.array([
         [
             df[(df['product_property']) & (df['mirror_property'])].shape[0],  # Both
             df[(df['product_property']) & (~df['mirror_property'])].shape[0]   # Product only
@@ -422,46 +402,29 @@ def visualize_properties(b, limit_index, save_filename=None):
             df[(~df['product_property']) & (df['mirror_property'])].shape[0],  # Mirror only
             df[(~df['product_property']) & (~df['mirror_property'])].shape[0]  # Neither
         ]
-    ]
+    ])
     
-    fig.add_trace(
-        go.Heatmap(
-            z=cooccurrence,
-            x=['Mirror=Yes', 'Mirror=No'],
-            y=['Product=Yes', 'Product=No'],
-            colorscale='YlOrRd',
-            text=cooccurrence,
-            texttemplate='%{text}',
-            textfont={"size": 14},
-            showscale=True,
-            colorbar=dict(title="Count"),
-            hovertemplate='%{y}<br>%{x}<br>Count: %{z}<extra></extra>'
-        ),
-        row=2, col=2
-    )
+    im = ax.imshow(cooccurrence, cmap='YlOrRd', aspect='auto')
+    ax.set_xticks([0, 1])
+    ax.set_yticks([0, 1])
+    ax.set_xticklabels(['Mirror=Yes', 'Mirror=No'])
+    ax.set_yticklabels(['Product=Yes', 'Product=No'])
+    ax.set_title('Property Co-occurrence Matrix')
     
-    # Update layout
-    fig.update_xaxes(title_text="Prime Index (n)", row=1, col=1)
-    fig.update_yaxes(title_text="Prime Value", row=1, col=1)
+    # Add text annotations
+    for i in range(2):
+        for j in range(2):
+            text = ax.text(j, i, cooccurrence[i, j],
+                          ha="center", va="center", color="black", fontsize=12, fontweight='bold')
     
-    fig.update_xaxes(title_text="Category", row=1, col=2)
-    fig.update_yaxes(title_text="Count", row=1, col=2)
+    plt.colorbar(im, ax=ax, label='Count')
     
-    fig.update_xaxes(title_text="Prime Value", row=2, col=1)
-    fig.update_yaxes(title_text="Frequency", row=2, col=1)
-    
-    fig.update_layout(
-        title_text=f'Property Distribution in Base {b} (First {limit_index:,} Primes)',
-        height=900,
-        width=1400,
-        showlegend=True,
-        hovermode='closest',
-        font=dict(size=11)
-    )
+    plt.tight_layout()
     
     # Save or return figure
     if save_filename:
-        fig.write_image(save_filename, format='svg')
+        fig.savefig(save_filename, format='svg', dpi=100, bbox_inches='tight')
+        plt.close(fig)
         return analysis
     else:
         return fig, analysis
@@ -628,7 +591,7 @@ def analyze_all_bases(prime_count, bases, verbose=True, save_figures=True, num_w
     
     print(f"\n{'='*80}")
     print(f"Analysis complete. {len(results)} SVG files saved to current directory.")
-    print(f"Open the .svg files in any browser to view the property distribution visualizations.")
+    print(f"Open the .svg files in any browser or image viewer.")
     print(f"{'='*80}\n")
     
     return results

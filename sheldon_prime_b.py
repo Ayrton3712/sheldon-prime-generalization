@@ -312,12 +312,12 @@ def analyze_properties(b, limit_index):
 
 
 def visualize_properties(b, limit_index, save_filename=None):
-    """Create interactive visualizations of property distributions in base b using Plotly.
+    """Create visualizations of property distributions in base b using Plotly.
     
     Args:
         b: The base to check in (2-36)
         limit_index: Maximum prime index to check (1-indexed)
-        save_filename: If provided, save the figure to this HTML file path; otherwise return the figure object
+        save_filename: If provided, save the figure to this PNG file path; otherwise return the figure object
     
     Returns:
         Plotly figure object (or None if saved to file)
@@ -461,7 +461,7 @@ def visualize_properties(b, limit_index, save_filename=None):
     
     # Save or return figure
     if save_filename:
-        fig.write_html(save_filename)
+        fig.write_image(save_filename)
         return analysis
     else:
         return fig, analysis
@@ -554,7 +554,7 @@ def _analyze_and_save_base(base_info):
         
         # Save visualization if requested
         if save_figures:
-            filename = f"base_{b}_properties.html"
+            filename = f"base_{b}_properties.png"
             visualize_properties(b, prime_count, save_filename=filename)
             status_msg += f" | Saved {filename}"
         
@@ -627,8 +627,8 @@ def analyze_all_bases(prime_count, bases, verbose=True, save_figures=True, num_w
                     print_property_results_from_analysis(b, prime_count, analysis)
     
     print(f"\n{'='*80}")
-    print(f"Analysis complete. {len(results)} interactive HTML files saved to current directory.")
-    print(f"Open the .html files in your browser to explore the visualizations with zoom, pan, and hover details.")
+    print(f"Analysis complete. {len(results)} PNG files saved to current directory.")
+    print(f"Open the .png files to view the property distribution visualizations.")
     print(f"{'='*80}\n")
     
     return results
